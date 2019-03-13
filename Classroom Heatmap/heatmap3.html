@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title> MSiA Slack HeatMap</title>
+    <style>
+
+        rect {
+            fill: lightblue;
+        }
+    </style>
+    <!--- Load the d3 library -->
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://unpkg.com/d3-simple-slider"></script>
+    <!-- <script src="https://d3js.org/d3-dsv.v1.min.js"></script>
+    <script src="https://d3js.org/d3-fetch.v1.min.js"></script> -->
+
+</head>
+
+<body>
+    <h1 style="font-size:500%; font-family: sans-serif;"> MSiA HeatMap </h1>
+    <div id="buttonsDiv"></div>
+    <!--<div id="container1">
+    	<svg id="main-svg"></svg>
+    	<svg id="legend-svg"></svg>
+    </div>-->
+
+    <!-- <svg id="main-svg" width=3000, height=1700></svg> -->
+</body>
+
+
+<script type="text/javascript">
+
+	function dataswap(mtype,data2,statdata2){
+
+		var count=0;
+		data3=data2;
+		statdata3=statdata2;
+
+		if(mtype=='messages'){
+		data3.forEach(function(sdata,i){
+          statdata3.forEach(function(std){
+            if(std.userid==sdata.userid){
+                count=count+1;
+            }
+            });
+            sdata.stat = +count;
+            count=0;
+        });
+		}else if(mtype=='reactions'){
+			data3.forEach(function(sdata,i){
+                statdata3.forEach(function(std){
+                    if(std.reactions.match(sdata.userid)){
+                        count=count+1;
+                    }
+                });
+                sdata.stat = +count;
+                count=0;
+            });
+		};
+
+		var statrange = d3.extent(data3,function(d){return d.stat;});
+        var rangemed =  d3.median(data3,function(d){return d.stat;});
+        var statmid = (statrange[0]+statrange[1])/2 ;
+
+        color_scale.domain([statrange[0],statmid,statrange[1]])
+                   .range(['blue','white','orange']);
+
+
+        data3.forEach(function(sdata){
+            sdata.color = color_scale(sdata.stat);
+        });
+
+        var groups = svg.selectAll('.studrectG')
+        			.remove()
+        svg.selectAll('.legendrect').remove()
+        svg.selectAll('.yaxis').remove()
+
+        var studrectG =svg.selectAll(".studrectG")
+    	.data(data3).enter().append("g")
+    	.attr('class',"studrectG")
+    	.attr("transform",function(d){return stdcoor(d)})
+    	.attr("stroke","black")
+    	.on('mouseenter', function(d) {
+
+    		//define hover events
+    		d3.select(this)
+    		.select('rect')
+    		.transition()
+    		.duration(100)
+    		.attr('width',strw*stmag)
+    		.attr('height',strl*stmag)
+    		.attr('stroke','black')
+    		.attr('stroke-width',4);
+
+    		d3.select(this)
+    		.moveToFront();
+
+    		d3.select(this)
+    		.append("image")
+    		.transition()
+    		.duration(100)
+    		.attr("class","studpic")
+    		.attr("xlink:href","Eta Cohort Pics/"+d.userid+".jpg")
+    		.attr("transform","translate("+picmargl+","+picmargt+") scale("+picmag+")");
+
+    		d3.select(this)
+    		.append('text')
+    		.transition()
+    		.duration(100)
+    		.text(dtype+": "+d.stat)
+    		.attr("transform",'translate('+(picmargl)+","+(stmag*strl-picmargt+20)+")")
+    		.style("font-size","30px")
+    		.style("fill","white")
+    		.style("font-family","sans-serif")
+    		.style("stroke","black");
+
+    		d3.select(this)
+    		.append('text')
+    		.transition()
+    		.duration(100)
+    		.text(d.username)
+    		.attr("transform",'translate('+(picmargl)+","+(30)+")")
+    		.style("font-size","20px")
+    		.style("fill","white")
+    		.style("font-family","sans-serif")
+    		.style("stroke","black");
+
+
+    	})
+    	.on("mouseleave",function(d){
+
+    		//define mouse leave event
+    		d3.select(this)
+    		.select('rect')
+    		.transition()
+    		.duration(200)
+    		.attr('width',strw)
+    		.attr('height',strl)
+    		.style("stroke-width",1)
+
+    		d3.select(this)
+    		.select('image')
+    		.remove()
+
+    		d3.select(this)
+    		.selectAll('text')
+    		.remove()
+    	});
+
+    // appending rectangles to student rectangle groups
+	studrectG.append("rect")
+    	.attr("width",strw)
+    	.attr("height",strl)
+        .style("stroke","black")
+    	.style("fill",function(d){return d.color});
+
+       var w = height-height*.2, h = 100;
+
+
+    legend.append("stop")
+      .attr("offset", "0%")
+      .attr("stop-color", color_scale(statrange[1]*0))
+      .attr("stop-opacity", 1);
+
+    legend.append("stop")
+      .attr("offset", "33%")
+      .attr("stop-color", color_scale(statrange[1]*0.33))
+      .attr("stop-opacity", 1);
+
+    legend.append("stop")
+      .attr("offset", "66%")
+      .attr("stop-color", color_scale(statrange[1]*0.66))
+      .attr("stop-opacity", 1);
+
+    legend.append("stop")
+      .attr("offset", "100%")
+      .attr("stop-color", color_scale(statrange[1]*1))
+      .attr("stop-opacity", 1);
+
+    svg.append("rect")
+      .attr("width", w)
+      .attr("height", h - 30)
+      .style("fill", "url(#gradient)")
+      .attr("transform", "translate(0,"+(w+30)+") rotate(-90)");
+ 
+    var y = d3.scaleLinear()
+      .range([w, 0])
+      .domain(statrange);
+
+    var yAxis = d3.axisRight()
+      .scale(y)
+      .ticks(5);
+
+    svg.append("g")
+      .attr("class", "yaxis")
+      .style("font","50px times")
+      .attr("transform", "translate("+(h-30)+",30)")
+      .call(yAxis)
+      .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 0)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("axis title");
+	};
+
+        // margins and svg
+    var margin = {top: 20, right: 50, bottom: 200, left: 80};
+    //2800 1600
+    var width = 3000 - margin.left - margin.right;
+    var height = 1700 - margin.top - margin.bottom;
+
+    var svg = d3.select("body").append("svg")
+    // var svg = d3.select("#main-svg").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    d3.selection.prototype.moveToFront = function() {  
+      return this.each(function(){
+        this.parentNode.appendChild(this);
+      });
+    };
+
+    var legend = svg.append("defs")
+      .append("svg:linearGradient")
+      .attr("id", "gradient")
+      .attr("x1", "0%")
+      .attr("y1", "100%")
+      .attr("x2", "100%")
+      .attr("y2", "100%")
+      .attr("spreadMethod", "pad");
+    // translate class room
+    var transx = width/2-50
+    var transy = 50
+
+    // class center
+    var clcentx = width
+    var clcenty = 0
+
+    // student rectangle width and height
+    var strw = 100
+    var strl = 100
+    var stmag = 2.5 // magnification on mouse enter
+    var picmag = 1.7 // magnification student picture
+    var picmargl = stmag*strw/7 // left pic margin
+    var picmargt = stmag*strl/7 // to pic margin
+
+    // row1 ellipse radii
+    var r1w = 450
+    var r1l = 300
+
+    // row2 ellipse radii
+    var r2w = 600
+    var r1l = 400
+
+
+    var wlrat = 1.5 // width length ratio
+    // row widths and lengths for each row
+    var rwid = [450,700,950,1300,1550];
+    var rlen = rwid.map(function(x) {return x/wlrat});
+
+    var dtype = "messages"; // shows messages or reations (default messages)
+
+    seatdata = d3.csv("onlyeta_userid_username.csv",seatready)
+    studdata = [];
+    studdata2 = [];
+
+    var color_scale=d3.scaleLinear()
+
+    	// translating student coordinates
+	function stdcoor(d){
+		//var rot = Math.atan(Math.tan(d.angle*(Math.PI/180))*rwid[d.row-1]/rlen[d.row-1])*180/Math.PI
+		if (d.angle>90){
+			return "translate("+(d.stx-strw)+","+(d.sty)+") rotate("+(0)+")";
+		}else{
+			return "translate("+(d.stx)+","+d.sty+") rotate("+(0)+")";
+		}
+		
+	};
+
+
+    function seatready(error,data){
+    	if(error) return console.warn(error);
+        statdata = d3.csv("allslackdatacsv3.csv",statready);
+
+        function statready(errorst,statdata){
+            if(errorst) return console.warn(errorst);
+
+
+    	data.forEach(function(d,i){
+    		d.row = +d.row;
+    		d.seat = +d.seat;
+    		d.angle = +d.angle;
+    		d.stx = +rwid[d.row-1]*Math.cos(d.angle*(Math.PI/180))+transx;
+    		d.sty = +rlen[d.row-1]*Math.sin(d.angle*(Math.PI/180))+transy;
+    		studdata[i]={
+    			username: d.username,
+    			userid: d.userid,
+    			stat: +0,
+    			color: "red"
+    		};
+    	});
+
+
+
+            var count = 0;
+
+            data.forEach(function(sdata,i){
+                statdata.forEach(function(std){
+                    if(std.userid==sdata.userid){
+                        count=count+1;
+                    }
+                    // if(std.reactions.match(sdata.userid)){
+                    //     count=count+1;
+                    // }
+                });
+                sdata.stat = +count;
+                count=0;
+            });
+
+        var statrange = d3.extent(data,function(d){return d.stat;});
+        var rangemed =  d3.median(data,function(d){return d.stat;});
+        var statmid = (statrange[0]+statrange[1])/2 ;
+
+        color_scale.domain([statrange[0],statmid,statrange[1]])
+                   .range(['blue','white','orange']);
+
+
+
+        data.forEach(function(sdata){
+            sdata.color = color_scale(sdata.stat);
+        });
+
+
+    	var buttGroup = svg.append("g")
+    						.attr("class","typebutt")
+    						.attr('height',300)
+    						.attr('width',300)
+    						.attr('transform',"translate("+(width/2+margin.left)+","+(height)+")")
+    						.call
+    	var buttlist = ['messages','reactions'];
+
+    	d3.select('#buttonsDiv')
+    	.selectAll('button')
+    	.data(buttlist).enter()
+    	.append('button')
+    	.text(function(d){return d;})
+    	.style('font-size','50px')
+    	.on('click',function(d){
+    		dtype = d;
+    		dataswap(d,data,statdata);
+    	})
+
+    	// svg.append('button')
+    	// .text('messages')
+    	// .attr('x',1000)
+    	// .attr('y',1000)
+    	// .attr('transform','translate(150,30)')
+    	// .style('font-size','100px');
+
+    	// student rectangle group
+    	var studrectG = svg.selectAll(".studrectG")
+    	.data(data).enter().append("g")
+    	.attr('class',"studrectG")
+    	.attr("transform",function(d){return stdcoor(d)})
+    	.attr("stroke","black")
+    	.on('mouseenter', function(d) {
+
+    		//define hover events
+    		d3.select(this)
+    		.select('rect')
+    		.transition()
+    		.duration(100)
+    		.attr('width',strw*stmag)
+    		.attr('height',strl*stmag)
+    		.attr('stroke','black')
+    		.attr('stroke-width',4);
+
+    		d3.select(this)
+    		.moveToFront();
+
+    		d3.select(this)
+    		.append("image")
+    		.transition()
+    		.duration(100)
+    		.attr("class","studpic")
+    		.attr("xlink:href","Eta Cohort Pics/"+d.userid+".jpg")
+    		.attr("transform","translate("+picmargl+","+picmargt+") scale("+picmag+")");
+
+    		d3.select(this)
+    		.append('text')
+    		.transition()
+    		.duration(100)
+    		.text(dtype+": "+d.stat)
+    		.attr("transform",'translate('+(picmargl)+","+(stmag*strl-picmargt+20)+")")
+    		.style("font-size","30px")
+    		.style("fill","white")
+    		.style("font-family","sans-serif")
+    		.style("stroke","black");
+
+    		d3.select(this)
+    		.append('text')
+    		.transition()
+    		.duration(100)
+    		.text(d.username)
+    		.attr("transform",'translate('+(picmargl)+","+(30)+")")
+    		.style("font-size","20px")
+    		.style("fill","white")
+    		.style("font-family","sans-serif")
+    		.style("stroke","black");
+
+
+    	})
+    	.on("mouseleave",function(d){
+
+    		//define mouse leave event
+    		d3.select(this)
+    		.select('rect')
+    		.transition()
+    		.duration(200)
+    		.attr('width',strw)
+    		.attr('height',strl)
+    		.style("stroke-width",1)
+
+    		d3.select(this)
+    		.select('image')
+    		.remove()
+
+    		d3.select(this)
+    		.selectAll('text')
+    		.remove()
+    	});
+
+    // appending rectangles to student rectangle groups
+	studrectG.append("rect")
+    	.attr("width",strw)
+    	.attr("height",strl)
+        .style("stroke","black")
+    	.style("fill",function(d){return d.color});
+     var w = height-height*.2, h = 100;
+
+    var key = d3.select("#legend1")
+      .append("svg")
+      .attr("width", w)
+      .attr("height", h);
+
+
+
+    legend.append("stop")
+      .attr("offset", "0%")
+      .attr("stop-color", color_scale(statrange[1]*0))
+      .attr("stop-opacity", 1);
+
+    legend.append("stop")
+      .attr("offset", "33%")
+      .attr("stop-color", color_scale(statrange[1]*0.33))
+      .attr("stop-opacity", 1);
+
+    legend.append("stop")
+      .attr("offset", "66%")
+      .attr("stop-color", color_scale(statrange[1]*0.66))
+      .attr("stop-opacity", 1);
+
+    legend.append("stop")
+      .attr("offset", "100%")
+      .attr("stop-color", color_scale(statrange[1]*1))
+      .attr("stop-opacity", 1);
+
+    svg.append("rect")
+    	.attr('class','legendrect')
+      .attr("width", w)
+      .attr("height", h - 30)
+      .style("fill", "url(#gradient)")
+      .attr("transform", "translate(0,"+(w+30)+") rotate(-90)");
+
+    var y = d3.scaleLinear()
+      .range([w, 0])
+      .domain(statrange);
+
+    var yAxis = d3.axisRight()
+      .scale(y)
+      .ticks(5);
+
+    svg.append("g")
+      .attr("class", "yaxis")
+      .style("font","50px times")
+      .attr("transform", "translate("+(h-30)+",30)")
+      .call(yAxis)
+      .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 0)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("axis title");
+
+        };
+    }
+
+    svg.selectAll("rowline")
+    .data(rwid)
+    .enter().append("ellipse")
+    .attr("cx",transx)
+    .attr("cy",transy)
+    .attr("rx",function(d){return d})
+    .attr("ry",function(d){return d/wlrat})
+    .attr("fill","transparent")
+    .attr("stroke","black")
+    .style("stroke-width",5);
+
+    
+ var gRange = d3
+    .select('div#slider-range')
+    .append('svg')
+    .attr('width', 500)
+    .attr('height', 100)
+    .append('g')
+    .attr('transform', 'translate(30,30)');
+
+var sliderRange = d3
+    .sliderBottom()
+    .min(0)
+    .max(100)
+    .width(300)
+    .tickFormat(d3.format('.2%'))
+    .ticks(5)
+    .default([0, 100])
+    .fill('#2196f3');
+
+//  var sliderGroup = svg.append("g")
+//             .attr("class","sliderRange")
+//             .attr('height',300)
+//             .attr('width',300)
+//             .attr("transform","translate("+margin.left+","+height+") scale(3)")
+//             .call(sliderRange);
+
+// sliderGroup.append('text')
+// .text("Date Slider")
+// .attr("transform","translate(0,-30)");
+
+
+function linspace(start, end, n) {
+    var out = [];
+    var delta = (end - start) / (n - 1);
+
+    var i = 0;
+    while(i < (n - 1)) {
+        out.push(start + (i * delta));
+        i++;
+    }
+
+    out.push(end);
+    return out;
+}
+
+</script>
+</html>
