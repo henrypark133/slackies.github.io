@@ -2,13 +2,13 @@
 <meta charset="utf-8">
 <style>
   svg {
-	background-color: grey;
+	background-color: white;
   }
 
   .x-axis path,
   .x-axis line {
     fill: none;
-    stroke: white;
+    stroke: black;
     shape-rendering: crispEdges;
   }
 
@@ -21,8 +21,8 @@
 
   .axis text {
       font-family: sans-serif;
-      font-size: 9px;
-	  fill: white;
+      font-size: 16px;
+	  fill: black;
   }
 
   rect{
@@ -46,15 +46,15 @@
   </form>
 </div>
 
-<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="http://d3js.org/d3.v4.min.js"></script>
 
 <script>
   var itemSize = 20,
       cellSize = itemSize - 1,
-	  margin = {top: 70, right: 50, bottom: 70, left: 70};
+	  margin = {top: 70, right: 50, bottom: 70, left: 100};
 
-  var width = 700 - margin.right - margin.left,
-      height = 300 - margin.top - margin.bottom;
+  var width = 1200 - margin.right - margin.left,
+      height = 500 - margin.top - margin.bottom;
 
   // set the ranges
   var xScale = d3.scaleBand().range([0, width]);
@@ -84,15 +84,15 @@ var svg = d3.select("#heatmap").append("svg")
   	function ranking_conv(v){
 	  switch(v){
 		case 1:
-		  return "first";
+		  return "First";
 		case 2:
-		  return "second";
+		  return "Second";
 		case 3:
-		  return "third";
+		  return "Third";
 		case 4:
-		  return "fourth";
+		  return "Fourth";
 		case 5:
-		  return "fifth";
+		  return "Fifth";
 	  }
 	}
 
@@ -133,8 +133,10 @@ var svg = d3.select("#heatmap").append("svg")
 	.text(function(d){return d});
 
   //Some (hardcoded) variables for the Axes
-  var rankings = ["first","second","third","fourth","fifth"]
+  var rankings = ["First","Second","Third","Fourth","Fifth"]
   var dates = datalist[0]["dates"].map(function(d){return d.date})
+
+  console.log(datalist)
 
 
   //Parametrization of layouts and Axes
@@ -186,8 +188,8 @@ var svg = d3.select("#heatmap").append("svg")
 	background
 		.append('rect')
         .attr('class', 'back-cell')
-        .attr('width', cellSize + 5)
-        .attr('height', cellSize + 5)
+        .attr('width', cellSize + 25)
+        .attr('height', cellSize + 25)
 		.attr('y', function(d) { return yScale(d.ranking); })
         .attr('x', function(d) { return xScale(d.date); })
 
@@ -206,8 +208,8 @@ var svg = d3.select("#heatmap").append("svg")
     var emo_img = emo_cells
 			.append("image")
 			.attr('class', 'emo-img')
-            .attr('width', function(d) { if(d.ranking != undefined ) return 20})
-            .attr('height', function(d) { if(d.ranking != undefined ) return 20})
+            .attr('width', function(d) { if(d.ranking != undefined ) return 40})
+            .attr('height', function(d) { if(d.ranking != undefined ) return 40})
 			.style('opacity',0)
 			.attr("xlink:href",function(d){if(d.ranking != undefined) return emoji_data["Apple_img"]})
 
@@ -241,8 +243,8 @@ var svg = d3.select("#heatmap").append("svg")
 	  emo_img = emo_cells
 			  .append("image")
 			  .attr('class', 'emo-img')
-			  .attr('width', function(d) { if(d.ranking != undefined ) return 20})
-			  .attr('height', function(d) { if(d.ranking != undefined ) return 20})
+			  .attr('width', function(d) { if(d.ranking != undefined ) return 40})
+			  .attr('height', function(d) { if(d.ranking != undefined ) return 40})
 			  .style('opacity',0)
 			  .attr("xlink:href",function(d){if(d.ranking != undefined) return emoji_dat["Apple_img"]})
 
@@ -280,11 +282,11 @@ var svg = d3.select("#heatmap").append("svg")
 </script>
 
 
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+<!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
-</body>
+</body> -->
 
 <br>
 <body>
