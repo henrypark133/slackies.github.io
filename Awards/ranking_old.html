@@ -22,13 +22,13 @@
     }
 
     .tooltip text {
-      font-size: 18px;
+      font-size: 24px;
       font-weight: 700;
       fill: black;
     }
 
     .x-axis text {
-      font-size: 20px;
+      font-size: 28px;
       font-weight: 700;
     }
 
@@ -45,7 +45,7 @@
 
     .y-label {
       fill: black;
-      font-size: 20px;
+      font-size: 30px;
       font-weight: 700;
     }
 
@@ -72,10 +72,10 @@
 
 <body>
   <script>
-    var margin = {top: 50, right: 200, bottom: 150, left: 100};
+    var margin = {top: 50, right: 200, bottom: 150, left: 200};
 
-    var width = 1440 - margin.left - margin.right,
-        height = 600 - margin.top - margin.bottom;
+    var width = 1920 - margin.left - margin.right,
+        height = 750 - margin.top - margin.bottom;
 
     var svg = d3.select("body").append("svg")
         .attr("width", width + margin.left + margin.right)
@@ -84,7 +84,7 @@
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
     var cfg = {
-      strokeWidth: 10
+      strokeWidth: 15
     };
 
     var colour = d3.scaleOrdinal(d3.schemeCategory20);
@@ -333,6 +333,11 @@
 
   </script>
 </body>
+
+<!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script> -->
 
 <br>
 <body>
