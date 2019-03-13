@@ -9,22 +9,48 @@
         rect {
             fill: lightblue;
         }
+
+        .allbuttDiv{
+        	margin: auto;
+        	padding: 10px;
+        	display: inline-block;
+        }
+
+		        .svg-container {
+		    display: inline-block;
+		    position: relative;
+		    width: 100%;
+		    padding-bottom: 100%;
+		    vertical-align: top;
+		    overflow: hidden;
+		}
+		.svg-content {
+		    display: inline-block;
+		    position: absolute;
+		    top: 0;
+		    left: 0;
+		}
+
     </style>
     <!--- Load the d3 library -->
     <script src="https://d3js.org/d3.v4.min.js"></script>
     <script src="https://unpkg.com/d3-simple-slider"></script>
+    <script src="https://d3js.org/d3-scale.v2.min.js"></script>
     <!-- <script src="https://d3js.org/d3-dsv.v1.min.js"></script>
     <script src="https://d3js.org/d3-fetch.v1.min.js"></script> -->
 
 </head>
 
 <body>
-    <h1 style="font-size:500%; font-family: sans-serif;"> MSiA HeatMap </h1>
-    <div id="buttonsDiv"></div>
-    <!--<div id="container1">
-    	<svg id="main-svg"></svg>
-    	<svg id="legend-svg"></svg>
-    </div>-->
+    <h1 style="font-size:200%; font-family: sans-serif;"> MSiA Slackies HeatMap </h1>
+    <div id="allbuttDiv" class="allbuttDiv">
+    	<div id="buttonsDiv"></div>
+    	<div id="quantDiv"></div>
+    </div>
+    <div id="container" class="svg-container">
+    	<!-- <svg id="main-svg"></svg>
+    	<svg id="legend-svg"></svg>-->
+    </div>
 
     <!-- <svg id="main-svg" width=3000, height=1700></svg> -->
 </body>
@@ -63,14 +89,40 @@
 		var statrange = d3.extent(data3,function(d){return d.stat;});
         var rangemed =  d3.median(data3,function(d){return d.stat;});
         var statmid = (statrange[0]+statrange[1])/2 ;
-
-        color_scale.domain([statrange[0],statmid,statrange[1]])
+        var statarr =[];
+        var datscale;
+        if(sctype=="linear"){
+        color_scale=d3.scaleLinear()
+        			.domain([statrange[0],statmid,statrange[1]])
                    .range(['blue','white','orange']);
+        datscale = d3.scaleLinear()
+        			.domain([statrange[0],statmid,statrange[1]])
+                   .range([0,100]);
+
+         }else if(sctype=="quantile"){
+         			data3.forEach(function(d,i){
+         				statarr[i]=d.stat;
+         			})
+         			datscale = d3.scaleQuantile()
+         						.domain(statarr)
+         						.range(linspace(0,100,100));
+         	        color_scale=d3.scaleLinear()
+        			.domain([0,50,100])
+                   .range(['blue','white','orange']);
+         }
 
 
+		//var statarr=data3.map(function(d){return d.stat})
+		// statarr.sort((a,b)=>a-b)
+
+		if(sctype=="linear"){
         data3.forEach(function(sdata){
             sdata.color = color_scale(sdata.stat);
+        });} else if(sctype=="quantile"){
+        	data3.forEach(function(sdata){
+            sdata.color = color_scale(datscale(sdata.stat));
         });
+    	}
 
         var groups = svg.selectAll('.studrectG')
         			.remove()
@@ -184,10 +236,21 @@
       .attr("height", h - 30)
       .style("fill", "url(#gradient)")
       .attr("transform", "translate(0,"+(w+30)+") rotate(-90)");
- 
+ 	
+ 	if(sctype=="linear"){
     var y = d3.scaleLinear()
       .range([w, 0])
-      .domain(statrange);
+      .domain(statrange);}
+      else if(sctype=="quantile")
+      {
+
+		var statarr=data3.map(function(d){return d.stat})
+		var y=d3.scaleQuantile()
+				.domain([0,100])
+				.range([w,0])
+				//.domain(statarr.sort((a,b)=>a-b))
+   				//.range(linspace(0,100,100));
+      }
 
     var yAxis = d3.axisRight()
       .scale(y)
@@ -212,12 +275,20 @@
     var width = 3000 - margin.left - margin.right;
     var height = 1700 - margin.top - margin.bottom;
 
-    var svg = d3.select("body").append("svg")
-    // var svg = d3.select("#main-svg").append("svg")
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
-      .append("g")
-      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    // var svg = d3.select("body").append("svg")
+    // // var svg = d3.select("#main-svg").append("svg")
+    //   .attr("width", width + margin.left + margin.right)
+    //   .attr("height", height + margin.top + margin.bottom)
+    //   .append("g")
+    //   .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    var svg = d3.select("div#container")
+  .append("svg")
+  .attr("preserveAspectRatio", "xMinYMin meet")
+  .attr("viewBox", "0 0 3000 1700")
+  .attr("width",width/2)
+  .attr("height",height/2)
+  .classed("svg-content", true);
 
     d3.selection.prototype.moveToFront = function() {  
       return this.each(function(){
@@ -264,12 +335,18 @@
     var rlen = rwid.map(function(x) {return x/wlrat});
 
     var dtype = "messages"; // shows messages or reations (default messages)
+    var sctype = "linear";
 
     seatdata = d3.csv("onlyeta_userid_username.csv",seatready)
     studdata = [];
     studdata2 = [];
 
-    var color_scale=d3.scaleLinear()
+    var color_scale;//=d3.scaleLinear()
+
+    var parseTime = d3.timeParse("%m/%d/%Y");
+    var dateList;
+    var startdate, enddate;
+    var date2my = d3.timeFormat("%b %Y")
 
     	// translating student coordinates
 	function stdcoor(d){
@@ -305,7 +382,14 @@
     		};
     	});
 
+    	statdata.forEach(function(d){
+    		d.date = parseTime(d.date);
+    	});
 
+    	// dateList = d3.set(statdata.map(function(d){return d.date})).values();
+    	dateList = statdata.map(function(d){return d.date});
+    	startdate = d3.min(dateList);
+    	enddate = d3.max(dateList);
 
             var count = 0;
 
@@ -326,8 +410,17 @@
         var rangemed =  d3.median(data,function(d){return d.stat;});
         var statmid = (statrange[0]+statrange[1])/2 ;
 
-        color_scale.domain([statrange[0],statmid,statrange[1]])
+                if(sctype=="linear"){
+        color_scale=d3.scaleLinear()
+        			.domain([statrange[0],statmid,statrange[1]])
                    .range(['blue','white','orange']);
+         }else if(sctype=="quantile"){
+
+         	        color_scale=d3.scaleQuantile()
+        			.domain(data.stat)
+                   .range(['blue','white','orange']);
+                   statrange = [0,100]
+         }
 
 
 
@@ -343,16 +436,28 @@
     						.attr('transform',"translate("+(width/2+margin.left)+","+(height)+")")
     						.call
     	var buttlist = ['messages','reactions'];
-
+    	var buttonsize=14;
     	d3.select('#buttonsDiv')
     	.selectAll('button')
     	.data(buttlist).enter()
     	.append('button')
     	.text(function(d){return d;})
-    	.style('font-size','50px')
+    	.style('font-size',buttonsize+'px')
     	.on('click',function(d){
     		dtype = d;
     		dataswap(d,data,statdata);
+    	})
+
+    	var quantButt = ['linear','quantile']
+    	d3.select('#quantDiv')
+    	.selectAll('button')
+    	.data(quantButt).enter()
+    	.append('button')
+    	.text(function(d){return d + (" scale");})
+    	.style('font-size',buttonsize+'px')
+    	.on('click',function(d){
+    		sctype = d;
+    		dataswap(dtype,data,statdata)
     	})
 
     	// svg.append('button')
@@ -448,8 +553,6 @@
       .attr("width", w)
       .attr("height", h);
 
-
-
     legend.append("stop")
       .attr("offset", "0%")
       .attr("stop-color", color_scale(statrange[1]*0))
@@ -498,6 +601,45 @@
       .text("axis title");
 
         };
+
+
+
+        console.log(date2my(startdate))
+        var targetWidth = 500
+        var timeScale = d3.scaleTime()
+        					.domain([startDate,endDate])
+        					.range([0,targetWidth])
+        					.clamp(true);
+
+        					var gRange = d3
+			    .select('div#slider-range')
+			    .append('svg')
+			    .attr('width', 500)
+			    .attr('height', 100)
+			    .append('g')
+			    .attr('transform', 'translate(30,30)');
+
+			var sliderRange = d3
+			    .sliderBottom()
+			    .min(0)
+			    .max(100)
+			    .width(300)
+			    .tickFormat(d3.format('.2%'))
+			    .ticks(5)
+			    .default([0, 100])
+			    .fill('#2196f3');
+
+			 var sliderGroup = svg.append("g")
+			            .attr("class","sliderRange")
+			            .attr('height',300)
+			            .attr('width',300)
+			            .attr("transform","translate("+margin.left+","+height+") scale(3)")
+			            .call(sliderRange);
+
+			sliderGroup.append('text')
+			.text("Date Slider")
+			.attr("transform","translate(0,-30)");
+
     }
 
     svg.selectAll("rowline")
@@ -512,34 +654,7 @@
     .style("stroke-width",5);
 
     
- var gRange = d3
-    .select('div#slider-range')
-    .append('svg')
-    .attr('width', 500)
-    .attr('height', 100)
-    .append('g')
-    .attr('transform', 'translate(30,30)');
-
-var sliderRange = d3
-    .sliderBottom()
-    .min(0)
-    .max(100)
-    .width(300)
-    .tickFormat(d3.format('.2%'))
-    .ticks(5)
-    .default([0, 100])
-    .fill('#2196f3');
-
-//  var sliderGroup = svg.append("g")
-//             .attr("class","sliderRange")
-//             .attr('height',300)
-//             .attr('width',300)
-//             .attr("transform","translate("+margin.left+","+height+") scale(3)")
-//             .call(sliderRange);
-
-// sliderGroup.append('text')
-// .text("Date Slider")
-// .attr("transform","translate(0,-30)");
+ 
 
 
 function linspace(start, end, n) {
